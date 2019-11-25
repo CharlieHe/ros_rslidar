@@ -27,11 +27,13 @@
 #include <rslidar_msgs/rslidarPacket.h>
 #include <rslidar_msgs/rslidarScan.h>
 #include "std_msgs/String.h"
+#include <std_msgs/Int64.h>
 #include <pcl/point_types.h>
 #include <pcl_ros/point_cloud.h>
 #include <pcl_ros/impl/transforms.hpp>
 #include <pcl_conversions/pcl_conversions.h>
 #include <stdio.h>
+#include <ctime>
 namespace rslidar_rawdata
 {
 // static const float  ROTATION_SOLUTION_ = 0.18f;  //水平角分辨率 10hz
@@ -162,6 +164,7 @@ public:
 
   void processDifop(const rslidar_msgs::rslidarPacket::ConstPtr& difop_msg);
   ros::Subscriber difop_sub_;
+  ros::Publisher timestamp_pub_;
   bool is_init_curve_;
   bool is_init_angle_;
   bool is_init_top_fw_;

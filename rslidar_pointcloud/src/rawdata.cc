@@ -104,7 +104,7 @@ void RawData::loadConfigFile(ros::NodeHandle node, ros::NodeHandle private_nh)
     Ry_ = -0.01087;
     Rz_ = 0;
   }
-  else if(model == "RSBPEARL")
+  else if (model == "RSBPEARL")
   {
     numOfLasers = 32;
     TEMPERATURE_RANGE = 50;
@@ -306,6 +306,7 @@ void RawData::loadConfigFile(ros::NodeHandle node, ros::NodeHandle private_nh)
   // subscribe to difop rslidar packets, if not right correct data in difop, it will not revise the correct data in the
   // VERT_ANGLE, HORI_ANGLE etc.
   difop_sub_ = node.subscribe("rslidar_packets_difop", 10, &RawData::processDifop, (RawData*)this);
+  timestamp_pub_ = node.advertise<std_msgs::Int64>("/gnss_time", 20);
 }
 
 void RawData::processDifop(const rslidar_msgs::rslidarPacket::ConstPtr& difop_msg)
@@ -828,6 +829,29 @@ void RawData::unpack(const rslidar_msgs::rslidarPacket& pkt, pcl::PointCloud<pcl
   float azimuth_diff;
   float azimuth_corrected_f;
   int azimuth_corrected;
+
+  // unpack GPS Time
+  std::tm gps_time;
+  gps_time.tm_year = (uint8_t)pkt.data[20] + 100;
+  gps_time.tm_mon = (uint8_t)pkt.data[21] - 1;
+  gps_time.tm_mday = (uint8_t)pkt.data[22];
+  gps_time.tm_hour = (uint8_t)pkt.data[23] + 8;
+  gps_time.tm_min = (uint8_t)pkt.data[24];
+  gps_time.tm_sec = (uint8_t)pkt.data[25];
+
+  uint32_t _sec;
+  uint32_t _u_sec;
+  _sec = mktime(&gps_time);
+  _u_sec = (uint16_t)((pkt.data[26] << 8) + pkt.data[27]) * 1000 + (uint16_t)((pkt.data[28] << 8) + pkt.data[29]);
+
+  // std::cout << _sec << '.' << _u_sec << std::endl;
+  // pack timestamp as ros message
+  std_msgs::Int64 timestamp_msg;
+
+  timestamp_msg.data = _sec * 1e6 + _u_sec;
+
+  // publish to ROS master
+  timestamp_pub_.publish(timestamp_msg);
 
   const raw_packet_t* raw = (const raw_packet_t*)&pkt.data[42];
 
